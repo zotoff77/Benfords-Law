@@ -2,3 +2,7 @@
 /venv
 plan.txt
 file_storage.db
+datasets.db
+.gitignore
+census_2009b copy
+.DS_Store
