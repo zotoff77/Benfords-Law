@@ -21,59 +21,57 @@
         <input type="submit" value="Upload">
     </form>
 
-    {% if error_message %}
-    <div style="color: red; border: 1px solid red; padding: 10px; margin: 10px 0;">
-        {{ error_message }}
-    </div>
-    {% endif %}
-
     {% if file_list %}
-        <h2>File List:</h2>
+    <h2>File List:</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>File Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for file in file_list %}
+                <tr>
+                    <td>
+                        <input type="radio" name="selected_file" value="{{ file[0] }}" onchange="this.form.submit()">
+                        {{ file[0] }}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No files found.</p>
+{% endif %}
+
+{% if selected_file %}
+    <h2>File Snippet:</h2>
+    <form method="POST" action="/process">
         <table>
             <thead>
                 <tr>
-                    <th>File Name</th>
+                    {% for column in selected_file[0] %}
+                        <th>
+                            <input type="radio" name="selected_column" value="{{ loop.index0 }}">
+                            {{ column }}
+                        </th>
+                    {% endfor %}
                 </tr>
             </thead>
             <tbody>
-                {% for file in file_list %}
+                {% for row in selected_file[1:] %}
                     <tr>
-                        <td>
-                            <input type="radio" name="selected_file" value="{{ file[0] }}">
-                            {{ file[0] }}
-                        </td>
+                        {% for value in row %}
+                            <td>{{ value }}</td>
+                        {% endfor %}
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
-        {% if data %}
-            <h2>File Snippet:</h2>
-            <table>
-                <thead>
-                    <tr>
-                        {% for header in data[0] %}
-                            <th>
-                                {{ header }}
-                                <!-- Add a radio button for each column header -->
-                                <input type="radio" name="selected_column" value="{{ header }}">
-                            </th>
-                        {% endfor %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in data[1:] %}
-                        <tr>
-                            {% for value in row %}
-                                <td>{{ value }}</td>
-                            {% endfor %}
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <input type="submit" value="Process file">
-        {% endif %}
-    {% else %}
-        <p>No files found in the database.</p>
-    {% endif %}
+        <input type="hidden" name="selected_file" value="{{ selected_file[0][0] }}">
+        <input type="submit" value="Process file">
+    </form>
+{% endif %}
+
 </body>
 </html>
