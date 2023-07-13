@@ -21,14 +21,17 @@
         <input type="submit" value="Upload">
     </form>
 
+    <!-- Display Error if provided -->
     {% if error_message %}
     <div style="color: red; border: 1px solid red; padding: 10px; margin: 10px 0;">
         {{ error_message }}
     </div>
     {% endif %}
 
+    <!-- If filelist is not empty - populate the table  -->
     {% if file_list %}
-        <h2>File List:</h2>
+    <h2>File List:</h2>
+    <form method="POST">
         <table>
             <thead>
                 <tr>
@@ -39,13 +42,22 @@
                 {% for file in file_list %}
                     <tr>
                         <td>
-                            <input type="radio" name="selected_file" value="{{ file[0] }}">
+                            <input type="radio" name="selected_file" value="{{ file[0] }}" {% if selected_file == file[0] %}checked{% endif %}>
                             {{ file[0] }}
                         </td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
+        <BR><BR>
+        <input type="submit" value="Preview File">
+    </form>
+    {% else %}
+        <p>No files found in the database.</p>
+    {% endif %}
+
+
+    <!-- If file selected then display file snippet  -->    
         {% if data %}
             <h2>File Snippet:</h2>
             <table>
@@ -70,10 +82,8 @@
                     {% endfor %}
                 </tbody>
             </table>
-            <input type="submit" value="Process file">
+            <BR><BR>
+            <input type="submit" value="Process Selected File And Row">
         {% endif %}
-    {% else %}
-        <p>No files found in the database.</p>
-    {% endif %}
 </body>
 </html>

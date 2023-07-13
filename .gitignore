@@ -2,3 +2,6 @@
 /venv
 plan.txt
 file_storage.db
+.DS_Store
+census_2009b copy
+datasets.db
