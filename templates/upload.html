@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Upload</title>
+    <style>
+        /* Add some basic styling for the table */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="file">
+        <input type="submit" value="Upload">
+    </form>
+
+    {% if error_message %}
+    <div style="color: red; border: 1px solid red; padding: 10px; margin: 10px 0;">
+        {{ error_message }}
+    </div>
+    {% endif %}
+
+    {% if data %}
+        <h2>File Snippet:</h2>
+        <form method="POST" action="/process">
+            <table>
+                <thead>
+                    <tr>
+                        {% for header in data[0] %}
+                            <th>
+                                {{ header }}
+                                <!-- Add a radio button for each column header -->
+                                <input type="radio" name="column" value="{{ header }}">
+                            </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data[1:] %}
+                        <tr>
+                            {% for value in row %}
+                                <td>{{ value }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <input type="submit" value="Select column">
+        </form>
+    {% endif %}
+</body>
+</html>
