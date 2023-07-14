@@ -58,32 +58,36 @@
 
 
     <!-- If file selected then display file snippet  -->    
-        {% if data %}
-            <h2>File Snippet:</h2>
-            <table>
-                <thead>
+    {% if data %}
+    <h2>File Snippet:</h2>
+    <form method="POST" action="/process">
+        <table>
+            <thead>
+                <tr>
+                    {% for header in data[0] %}
+                        <th>
+                            {{ header }}
+                            <!-- Add a radio button for each column header -->
+                            <input type="radio" name="selected_column" value="{{ header }}">
+                        </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data[1:] %}
                     <tr>
-                        {% for header in data[0] %}
-                            <th>
-                                {{ header }}
-                                <!-- Add a radio button for each column header -->
-                                <input type="radio" name="selected_column" value="{{ header }}">
-                            </th>
+                        {% for value in row %}
+                            <td>{{ value }}</td>
                         {% endfor %}
                     </tr>
-                </thead>
-                <tbody>
-                    {% for row in data[1:] %}
-                        <tr>
-                            {% for value in row %}
-                                <td>{{ value }}</td>
-                            {% endfor %}
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <BR><BR>
-            <input type="submit" value="Process Selected File And Row">
-        {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+        <BR><BR>
+        <input type="hidden" name="selected_file" value="{{ selected_file }}">
+        <input type="hidden" name="selected_column" value="{{ selected_column }}">
+        <input type="submit" value="Process Selected File And Column">
+    </form>
+    {% endif %}
 </body>
 </html>

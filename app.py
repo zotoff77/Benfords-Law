@@ -5,6 +5,12 @@ import os
 import csv
 import pandas as pd
 from io import StringIO
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+import plotly.offline as py
+import numpy as np
+
 
 # Create Flask App instance
 app = Flask(__name__)
@@ -108,28 +114,61 @@ def upload_file():
 
 @app.route('/process', methods=['POST'])
 def process_file():
-    selected_file = request.form['selected_file']
-    selected_column = request.form['selected_column']
+    try:
+        selected_file = request.form['selected_file']
+        selected_column = request.form['selected_column']
 
-    # Get the file data from the database
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute('SELECT * FROM files WHERE filename = ?', (selected_file,))
-    result = cursor.fetchone()
-    filename = result[1] if result else None
+        # Get the file data from the database
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute('SELECT * FROM files WHERE filename = ?', (selected_file,))
+        result = cursor.fetchone()
 
-    if filename:
-        # Load the file data into a DataFrame
-        df = pd.read_csv(filename)
+        if not result:
+            return render_template("results.html", error_message="File not found in the database.")
 
-        # Perform the desired processing on the selected column
-        data = df[selected_column]
+        content = result[2]
+        dialect = csv.Sniffer().sniff(content, delimiters=result[3])
+        # Parse content into list of lists  
+        data = list(csv.reader(StringIO(content), dialect=dialect))
 
-        # Perform the processing and return the result
-        # ... (Add your processing code here)
-        return f"Selected file: {filename}, Selected column: {selected_column}"
+        if not data or selected_column not in data[0]:
+            return render_template("results.html", error_message="Invalid data or column not found.")
+        
+        col_index = data[0].index(selected_column)
+        col_data = [row[col_index] for row in data[1:]]
+        
+            
+        # Calculate Benford's Distribution & our data distribution
+        benford_distr = [np.log10(1 + 1/d) for d in range(1, 10)]
+        
+        # Extract the leading digit from each number, skip for 'None', '' empty str and zeros
+        leading_digits = [int(str(abs(float(num)))[0]) for num in col_data if num and float(num) != 0.0]
+        
+        frequency = pd.value_counts(leading_digits, normalize=True).sort_index()
 
-    return "File not found"
+        # Create the bar traces
+        trace_benford = go.Bar(x=list(range(1, 10)), y=benford_distr, name='Benford')
+        trace_data = go.Bar(x=frequency.index, y=frequency.values, name='Data')
+
+        # Create the layout
+        layout = go.Layout(
+            title='Benford vs Data Distribution',
+            xaxis=dict(title='Leading Digit'),
+            yaxis=dict(title='Frequency'),
+            barmode='group'
+        )
+
+        # Create the figure and convert to HTML
+        fig = go.Figure(data=[trace_benford, trace_data], layout=layout)
+        plot_html = py.plot(fig, output_type='div', include_plotlyjs=False)
+        
+        return render_template("results.html", file_list=None, selected_file=selected_file, data=col_data, plot=plot_html, error_message=None)
+    
+    except Exception as e:
+        return render_template("results.html", data=[], error_message="Server error: " + str(e))      
+    
+
 
 
 if __name__ == '__main__':
