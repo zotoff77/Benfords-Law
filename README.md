@@ -1,31 +1,28 @@
 # Challenge: Benford's Law
 ---
+
+
 ### Description:
 
 
-### Run instructions:
 
-=============================== Build my docker image =============
-out of venv shell:
+### How to run?:
+**Download and run my image from docker repository:**
+- docker pull zotoff77/l7:latest
 
-docker build
+- docker run -p 8080:5000 zotoff77/l7:latest
 
-=============================== Publishing my image in docker repository =============
+- in browser: localhost:8080
 
-bash$
+**Submission package:**
+Source Files (also provided link to git repository)
+- app.py
+- upload.html
+- results.html
+- styles.css
 
-docker login (see website for details)
+This README.md document
 
-docker tag benfords_law zotoff77/l7:latest
-
-zotoff$ docker push zotoff77/l7:latest
-
-=================================== Download and run my image from docker repository ====
-docker pull zotoff77/l7:latest
-
-docker run -p 8080:5000 zotoff77/l7:latest
-
-in browser: localhost:8080
 
 ---
 ## Assignment & Status:
@@ -33,7 +30,6 @@ in browser: localhost:8080
 In 1938, Frank Benford published a paper showing the distribution of the leading digit in many disparate sources of data.
 In all these sets of data, the number 1 was the leading digit about 30% of the time.
 Benford’s law has been found to apply to population numbers, death rates, lengths of rivers, mathematical distributions given by some power law, and physical constants like atomic weights and specific heats.
-
 
 **[DONE]** Create a web application (Python, Node or other back-end is fine if needed) that:
 **[DONE]** 1) can ingest the attached example file (census_2009b) and any other flat file with a viable target column. Note that other columns in user-submitted files may or may not be the same as the census data file and users are known for submitting files that don't always conform to rigid expectations. How you deal with files that don't conform to the expectations of the application is up to you, but should be reasonable and defensible.
