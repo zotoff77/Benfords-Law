@@ -1,32 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>File Upload</title>
-    <style>
-        /* Add some basic styling for the table */
-        table {
-            border-collapse: collapse;
-            width: 100%;
-        }
-        th, td {
-            border: 1px solid black;
-            padding: 8px;
-            text-align: left;
-        }
-    </style>
+    <title>Benford's Law Validation</title>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
+    <h1>Benford's Law Validation</h1>
+       <!-- Display Error if provided -->
+       {% if error_message %}
+       <div class="error">
+           {{ error_message }}
+       </div>
+       {% endif %}
+       <BR>
+   
     <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="file">
-        <input type="submit" value="Upload">
+        <label for="file-upload">Choose a file:</label>
+        <input type="file" name="file_to_upload" id="file-upload">
+        <input type="submit" name= "btn_upload" value="Upload" class="btn">
     </form>
 
-    <!-- Display Error if provided -->
-    {% if error_message %}
-    <div style="color: red; border: 1px solid red; padding: 10px; margin: 10px 0;">
-        {{ error_message }}
-    </div>
-    {% endif %}
 
     <!-- If filelist is not empty - populate the table  -->
     {% if file_list %}
@@ -42,15 +35,17 @@
                 {% for file in file_list %}
                     <tr>
                         <td>
-                            <input type="radio" name="selected_file" value="{{ file[0] }}" {% if selected_file == file[0] %}checked{% endif %}>
-                            {{ file[0] }}
+                            <label>
+                              <input type="radio" name="selected_file" value="{{ file[0] }}" {% if selected_file == file[0] %}checked{% endif %}>
+                              {{ file[0] }}
+                            </label>
                         </td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
-        <BR><BR>
-        <input type="submit" value="Preview File">
+        <br><br>
+        <input type="submit" name="btn_preview" value="Preview File" class="btn">
     </form>
     {% else %}
         <p>No files found in the database.</p>
@@ -60,15 +55,17 @@
     <!-- If file selected then display file snippet  -->    
     {% if data %}
     <h2>File Snippet:</h2>
-    <form method="POST" action="/process">
+    <form method="POST">
         <table>
             <thead>
                 <tr>
                     {% for header in data[0] %}
                         <th>
-                            {{ header }}
-                            <!-- Add a radio button for each column header -->
-                            <input type="radio" name="selected_column" value="{{ header }}">
+                            <label>
+                              {{ header }}
+                              <!-- Add a radio button for each column header -->
+                              <input type="radio" name="selected_column" value="{{ header }}">
+                            </label>
                         </th>
                     {% endfor %}
                 </tr>
@@ -83,11 +80,13 @@
                 {% endfor %}
             </tbody>
         </table>
-        <BR><BR>
+        <br><br>
         <input type="hidden" name="selected_file" value="{{ selected_file }}">
         <input type="hidden" name="selected_column" value="{{ selected_column }}">
-        <input type="submit" value="Process Selected File And Column">
+        <input type="submit" name="btn_process"value="Process Selection" class="btn">
     </form>
     {% endif %}
+
+
 </body>
 </html>

@@ -1,28 +1,25 @@
-from flask import Flask, request, render_template, session, g
-from werkzeug.utils import secure_filename
+from flask import Flask, request, redirect, render_template, session, g
 import sqlite3
-import os
 import csv
 import pandas as pd
 from io import StringIO
-import pandas as pd
-import numpy as np
 import plotly.graph_objects as go
 import plotly.offline as py
 import numpy as np
+import os
 
+def get_db():
+    """
+    Return database connection
+    """
+    if (db := getattr(g, '_database', None)) is None:
+        db = g._database = sqlite3.connect(app.config['DATABASE'])
+    return db
 
-# Create Flask App instance
-app = Flask(__name__)
-app.config['SECRET_KEY'] = os.urandom(24)
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['DATABASE'] = 'datasets.db'
-
-
-# Create database and table if they don't exist
 def init_db():
+    """
+    Create database and table if they do not exist already
+    """
     with app.app_context():
         db = get_db()
         cursor = db.cursor()
@@ -37,138 +34,168 @@ def init_db():
         db.commit()
 
 
-# Get database connection
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect(app.config['DATABASE'])
-    return db
+# Initialize Flask App
+app = Flask(__name__)
+app.config.from_mapping(
+    SECRET_KEY=os.urandom(24),
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    DATABASE='datasets.db'
+)
+
+# Initialize Database
+with app.app_context():
+    init_db()
 
 
-# Clear session and close database connection on shutdown
 @app.teardown_appcontext
 def close_db(error):
-    db = getattr(g, '_database', None)
-    if db is not None:
+    """
+    Close the database connection on shutdown
+    """
+    if (db := getattr(g, '_database', None)) is not None:
         db.close()
 
 
-# Clear session and remove uploaded file on startup
 @app.before_request
 def clear_session():
+    """
+    Clear session and remove uploaded file on startup
+    """
     session.clear()
     session['uploaded_file'] = None
 
 
-# Populate file list from database
 def get_file_list():
+    """
+    Return a list of all filenames from the database
+    """
     db = get_db()
     cursor = db.cursor()
     cursor.execute('SELECT filename FROM files')
     return cursor.fetchall()
 
 
-
 @app.route("/", methods=["GET", "POST"])
-def upload_file():
-    init_db()
+def main_handle():
+    """
+    Main page route, handles GET to display the main page and POST to process the file upload
+    """
+    if request.method == "GET":
+        selected_file = request.form.get('selected_file')
+        data = None
 
-    # Process selected file, if any
-    selected_file = request.form.get('selected_file')
-    data = None
+        if selected_file:
+            data = fetch_file_from_db(selected_file)[:10]
 
-    if selected_file:
-        # Get the file content from the database
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute("SELECT *  FROM files WHERE filename = ?", (selected_file,))
-        result = cursor.fetchone()
-        if result:
-            content = result[2]
-            dialect = csv.Sniffer().sniff(content, delimiters=result[3])
-            # Parse content into list of lists  
-            data = list(csv.reader(StringIO(content), dialect=dialect))[:10]
-        return render_template("upload.html", file_list=get_file_list(), selected_file=selected_file, data=data, error_message=None)
+            if data:
+                return render_template("upload.html", file_list=get_file_list(), selected_file=selected_file, data=data)
 
+        return render_template("upload.html", file_list=get_file_list(), data=None)
+    
+    elif request.method == "POST":
+        if 'btn_upload' in request.form:
+            # Upload selected file to the database
+            file = request.files["file_to_upload"]
+            if not file:
+                return render_template("upload.html", file_list=get_file_list(), selected_file=None, error_message="No file selected for upload.")
+            
+            allowed_delimiters = [",", "\t"]
+            content = file.read().decode("utf-8")
 
-    if request.method == "POST":
-        file = request.files["file"]
-        
-        # Validate the file format (comma or tab separated)
-        allowed_delimiters = [",", "\t"]
-        content = file.read().decode("utf-8")
-        dialect = csv.Sniffer().sniff(content, delimiters=allowed_delimiters)
-        if dialect.delimiter in allowed_delimiters:
-            # Save the file and its content to the database
+            try:
+                dialect = csv.Sniffer().sniff(content, delimiters=allowed_delimiters)
+            except csv.Error:
+                return render_template("upload.html", file_list=get_file_list(), selected_file=None, error_message="Invalid file format. Only comma or tab-separated files are allowed.")
+
             db = get_db()
             cursor = db.cursor()
             cursor.execute("INSERT INTO files (filename, content, delimiter) VALUES (?, ?, ?)", (file.filename, content, dialect.delimiter))
+                        
             db.commit()
-        else:
-            error_message = "Invalid file format. Only comma or tab-separated files are allowed."
-            return render_template("upload.html", file_list=get_file_list(), selected_file=None, error_message=error_message)
-        
+        elif 'btn_preview' in request.form:
+            # Check if file name was selected from the uploaded files list and show a snippet
+            if 'selected_file' not in request.form:
+                return render_template("upload.html", file_list=get_file_list(), selected_file=None, error_message="No file selected to preview.")        
+            file_name=request.form.get('selected_file')
+            data = fetch_file_from_db(file_name)[:10]
+            if not data:
+                return render_template("upload.html", file_list=get_file_list(), selected_file=None, error_message="No data available.")   
+            return render_template("upload.html", file_list=get_file_list(), selected_file = file_name, data=data)
+        elif 'btn_process' in request.form:
+            selected_file = request.form['selected_file']
+            if not selected_file:
+                return render_template("upload.html", file_list=get_file_list(), selected_file=None, error_message="Please select a file to process.")   
+            
+            selected_column = request.form['selected_column']
+            if not selected_column:
+                return render_template("upload.html", file_list=get_file_list(), selected_file=selected_file, error_message="Please select a column to process.")
 
-    return render_template("upload.html", file_list=get_file_list(), data=None, error_message=None)
+            data = fetch_file_from_db(selected_file)
+
+            col_index = data[0].index(selected_column)
+            try:
+                col_data = [row[col_index] for row in data[1:] if len(row) > col_index]
+            except IndexError as e:
+                return render_template("upload.html", file_list=get_file_list(), selected_file=selected_file, error_message= str(e))
+            
+
+            if data is None or col_data is None:
+                return render_template("upload.html", file_list=get_file_list(), selected_file=selected_file, error_message="Invalid data or data not found.")
+            try:
+                plot_html = calculate_benford_and_generate_plot(col_data)
+            except ValueError as e:
+                return render_template("upload.html", file_list=get_file_list(), selected_file=selected_file, error_message="Invalid data.")
+                
+            return render_template("results.html", file_list=None, plot=plot_html)  
+    
+    return render_template("upload.html", file_list=get_file_list(), data=None)
+    
 
 
-@app.route('/process', methods=['POST'])
-def process_file():
-    try:
-        selected_file = request.form['selected_file']
-        selected_column = request.form['selected_column']
+def fetch_file_from_db(filename):
+    """
+    Fetch the selected file from the database 
+    """
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM files WHERE filename = ?", (filename,))
+    result = cursor.fetchone()
 
-        # Get the file data from the database
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute('SELECT * FROM files WHERE filename = ?', (selected_file,))
-        result = cursor.fetchone()
-
-        if not result:
-            return render_template("results.html", error_message="File not found in the database.")
-
+    if result:
         content = result[2]
         dialect = csv.Sniffer().sniff(content, delimiters=result[3])
-        # Parse content into list of lists  
         data = list(csv.reader(StringIO(content), dialect=dialect))
+        return data
 
-        if not data or selected_column not in data[0]:
-            return render_template("results.html", error_message="Invalid data or column not found.")
-        
-        col_index = data[0].index(selected_column)
-        col_data = [row[col_index] for row in data[1:]]
-        
-            
-        # Calculate Benford's Distribution & our data distribution
-        benford_distr = [np.log10(1 + 1/d) for d in range(1, 10)]
-        
-        # Extract the leading digit from each number, skip for 'None', '' empty str and zeros
-        leading_digits = [int(str(abs(float(num)))[0]) for num in col_data if num and float(num) != 0.0]
-        
-        frequency = pd.value_counts(leading_digits, normalize=True).sort_index()
-
-        # Create the bar traces
-        trace_benford = go.Bar(x=list(range(1, 10)), y=benford_distr, name='Benford')
-        trace_data = go.Bar(x=frequency.index, y=frequency.values, name='Data')
-
-        # Create the layout
-        layout = go.Layout(
-            title='Benford vs Data Distribution',
-            xaxis=dict(title='Leading Digit'),
-            yaxis=dict(title='Frequency'),
-            barmode='group'
-        )
-
-        # Create the figure and convert to HTML
-        fig = go.Figure(data=[trace_benford, trace_data], layout=layout)
-        plot_html = py.plot(fig, output_type='div', include_plotlyjs=False)
-        
-        return render_template("results.html", file_list=None, selected_file=selected_file, data=col_data, plot=plot_html, error_message=None)
-    
-    except Exception as e:
-        return render_template("results.html", data=[], error_message="Server error: " + str(e))      
+    return None
     
 
+
+
+def calculate_benford_and_generate_plot(col_data):
+    """
+    Calculate Benford's distribution, generate the plot and return the HTML
+    """
+    benford_distr = [np.log10(1 + 1/d) for d in range(1, 10)]
+    leading_digits = [int(str(abs(float(num)))[0]) for num in col_data if num and float(num) != 0.0]
+    frequency = pd.value_counts(leading_digits, normalize=True).sort_index()
+
+    trace_benford = go.Bar(x=list(range(1, 10)), y=benford_distr, name="Benford's")
+    trace_data = go.Bar(x=frequency.index, y=frequency.values, name='Data from file')
+
+    layout = go.Layout(
+        title="Benford's Distribution vs File Data Distribution",
+        xaxis=dict(title='Leading Digit'),
+        yaxis=dict(title='Frequency'),
+        barmode='group'
+    )
+
+    fig = go.Figure(data=[trace_benford, trace_data], layout=layout)
+    plot_html = py.plot(fig, output_type='div', include_plotlyjs=False)
+
+    return plot_html
 
 
 if __name__ == '__main__':
