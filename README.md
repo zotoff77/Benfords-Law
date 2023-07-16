@@ -7,9 +7,8 @@
 - docker run -p 8080:5000 zotoff77/l7:latest
 - in browser: localhost:8080
 
-#### Source code files are provided in the email and also available via git repository:
-
-
+#### Source code files are provided in the email (.zip) and also available via github repository:
+https://github.com/zotoff77/Benfords-Law.git
 
 ### Description:
 This project is a web application built on the Flask framework in Python, incorporating the Benford's Law concept to analyze user-uploaded data files.
@@ -30,7 +29,8 @@ The application adopts the MVC (Model-View-Controller) pattern; the model corres
 **[DONE]** The delivered package should contain a docker file that allows us to docker run the application and test the functionality directly.
 
 **[DONE]** Stretch challenge: persist the uploaded information to a database so a user can come to the application and browse through datasets uploaded by other users. No user authentication/user management is required here… assume anonymous users and public datasets.
-*[PASS]* Bonus points for automated tests.
+
+**[PASS]** Bonus points for automated tests.
 
 ### Submission package:
 Source Files (also provided link to git repository)
