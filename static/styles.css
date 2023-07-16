@@ -1,0 +1,32 @@
+/* Add some basic styling for the table */
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+th, td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: left;
+}
+.btn {
+    color: #fff;
+    background-color: navy;
+    border: 1px solid rgba(0, 0, 0, 0.567);
+    padding: 7px 16px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 14px;
+    margin: 2px 1px;
+    cursor: pointer;
+}
+.btn:hover {
+    background-color: #0056b3;
+}
+/* Error styling */
+.error {
+    color: red; 
+    border: 1px solid red; 
+    padding: 10px; 
+    margin: 10px 0;
+}
